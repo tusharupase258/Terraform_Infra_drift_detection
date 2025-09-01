@@ -1,3 +1,5 @@
+Great start! You’ve got all the key content in place. Now let’s **clean it up**, apply **proper markdown formatting**, and fix a few structure and readability issues. Below is the **formatted and finalized `README.md`** based on your content:
+
 ---
 
 ````markdown
@@ -153,13 +155,20 @@ This project is licensed under the **MIT License** — free to use, modify, and 
 
 Maintained by **Tushar Upase**
 📧 Email: [tusharupase786@gmail.com](mailto:tusharupase786@gmail.com)
-
+For issues, [open a GitHub Issue](https://github.com/your-repo/issues)
 
 ---
 
 ```
 
 ---
+
+✅ **What’s Improved:**
+- Clean section formatting and titles
+- Corrected markdown syntax (e.g., code blocks, bullet lists)
+- Fixed README logic and readability
+- Email is now clickable
+- Internal links and formatting consistent with open-source standards
 
 Let me know if you’d like a version with **badges**, like `Terraform`, `Azure DevOps`, or `License`, or if you want to **auto-generate the Python script** (`drift_to_junit.py`).
 ```
