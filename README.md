@@ -1,19 +1,21 @@
+---
+
 ````markdown
 # Terraform_Infra_drift_detection
 
-This repository provides reusable and extensible configurations for detecting **Terraform infrastructure drift** via **Azure DevOps pipelines**.
+This repository provides **reusable** and **extensible** configurations for detecting **Terraform infrastructure drift** using **Azure DevOps pipelines**.
 
-Infrastructure drift occurs when the actual deployed infrastructure differs from what's defined in Terraform code. This repo automates drift detection and provides optional steps to manually review and apply changes.
+Infrastructure drift occurs when the actual deployed infrastructure differs from what's defined in Terraform code. This repo automates drift detection and provides optional steps to manually review and apply changes safely.
 
 ---
 
 ## 📌 Repository Goals
 
-- Provide **multiple pipeline templates** for drift detection
-- Support flows from **plan-only** to **approval and apply**
-- Enable usage across **multiple environments** (e.g., dev, stage, prod)
-- Include helper scripts (e.g., for reporting, conversion)
-- Standardize Terraform drift detection in CI/CD
+- ✅ Provide **multiple pipeline templates** for drift detection
+- 🔁 Support flows from **plan-only** to **approval and apply**
+- 🌐 Enable usage across **multiple environments** (e.g., dev, stage, prod)
+- 🛠️ Include **helper scripts** (e.g., reporting, conversion to test results)
+- 📦 Standardize Terraform drift detection in CI/CD workflows
 
 ---
 
@@ -23,19 +25,19 @@ Infrastructure drift occurs when the actual deployed infrastructure differs from
 .
 ├── pipelines/
 │   ├── drift-plan-only.yml              # Detect drift only (no apply)
-│   ├── drift-plan-approve-apply.yml     # Drift detection with approval & apply
-│   ├── drift-plan-auto-apply.yml        # (Future) Drift detection with auto-apply
+│   ├── drift-plan-approve-apply.yml     # Drift detection with manual approval & apply
+│   ├── drift-plan-auto-apply.yml        # (Coming Soon) Auto apply after drift
 │
-├── terraform/                           # Terraform configs (optional or examples)
+├── terraform/                           # Example Terraform configuration
 │   ├── main.tf
 │   ├── backend.tf
 │   └── variables.tf
 │
 ├── scripts/
-│   ├── drift_to_junit.py                # Converts Terraform JSON plan to JUnit XML
-│   └── check_drift.sh                   # (Optional) Shell script helper
+│   ├── drift_to_junit.py                # Converts Terraform plan JSON to JUnit XML
+│   └── check_drift.sh                   # (Optional) Shell helper script
 │
-└── README.md
+└── README.md                            # This documentation
 ````
 
 ---
@@ -45,39 +47,35 @@ Infrastructure drift occurs when the actual deployed infrastructure differs from
 ### 1. `drift-plan-only.yml`
 
 * Runs `terraform plan -detailed-exitcode`
-* Publishes the raw plan output (`drift.json`) as artifact
+* Publishes the raw plan output (`drift.json`) as an artifact
 * Converts `drift.json` → `drift-results.xml` (JUnit format)
-* Shows results in Azure DevOps test dashboard
-
----
+* Shows drift results in Azure DevOps Test tab
 
 ### 2. `drift-plan-approve-apply.yml`
 
-* All features of plan-only pipeline
-* Adds **manual approval stage**
-* Runs `terraform apply` using saved plan file (`tfplan.binary`) **after approval**
-
----
+* Includes all steps from the **plan-only pipeline**
+* Adds a **manual approval stage** before apply
+* Applies changes using `tfplan.binary` only after approval
 
 ### 3. `drift-plan-auto-apply.yml` *(Coming Soon)*
 
-* Automatically applies changes without manual review
-* Intended for **non-production** environments
+* Automatically applies changes **without human approval**
+* Best suited for **non-production** environments
 
 ---
 
 ## 🐍 Python Script for Drift Report Conversion
 
-This repo includes a Python script to convert `terraform plan` JSON output to JUnit format for visualization in Azure DevOps test results.
+The repo includes a Python script to convert `terraform plan -json` output into **JUnit XML**, so it can be viewed as test results in Azure DevOps.
 
-### Script: `scripts/drift_to_junit.py`
+### 📄 Script: `scripts/drift_to_junit.py`
 
 #### 📦 Requirements
 
 * Python 3.x
 * [`junit-xml`](https://pypi.org/project/junit-xml/)
 
-Install it via pip:
+Install via pip:
 
 ```bash
 pip install junit-xml
@@ -89,17 +87,17 @@ pip install junit-xml
 python scripts/drift_to_junit.py drift.json drift-results.xml
 ```
 
-* Input: `drift.json` generated from `terraform plan -json`
-* Output: `drift-results.xml` used in `PublishTestResults@2` task
+* `drift.json`: Output from `terraform plan -json`
+* `drift-results.xml`: Used by `PublishTestResults@2` in the pipeline
 
 ---
 
 ## 🔁 How to Use in Azure DevOps
 
-1. Go to Azure DevOps → Pipelines → New Pipeline
-2. Choose your repository
-3. Select "Existing YAML file"
-4. Choose a pipeline from `/pipelines/`
+1. Go to **Azure DevOps** → **Pipelines** → **New Pipeline**
+2. Select your repository
+3. Choose "**Existing YAML file**"
+4. Pick the pipeline file you need, e.g.:
 
 ```yaml
 /pipelines/drift-plan-approve-apply.yml
@@ -109,44 +107,52 @@ python scripts/drift_to_junit.py drift.json drift-results.xml
 
 ## 🔐 Authentication Setup
 
-Set the following as **pipeline variables** or in a secure Azure DevOps Library:
+Set the following as **secure pipeline variables** or in a **DevOps Variable Group**:
 
 * `ARM_CLIENT_ID`
 * `ARM_CLIENT_SECRET`
 * `ARM_SUBSCRIPTION_ID`
 * `ARM_TENANT_ID`
 
-Also, create a service connection in Azure DevOps named `tushar_SP` or update pipeline YAML accordingly.
+Also, create a **service connection** in Azure DevOps named:
+
+```text
+tushar_SP
+```
+
+Or update the pipeline YAML to match your actual service connection name.
 
 ---
 
 ## 📌 Best Practices
 
-* Don't hardcode secrets – use secure pipelines and Key Vault
-* Always review `terraform plan` before applying (especially in prod)
-* Archive `drift.json` or `tfplan.binary` as artifacts for auditing
-* Use separate pipelines for different environments if needed
+* ❌ **Never hardcode secrets** – use secure variables or Key Vault
+* 🔍 Always **review the plan** before applying (especially in production)
+* 🗃️ Archive `drift.json` and `tfplan.binary` as artifacts for audit trail
+* 🔀 Use **separate pipelines** per environment (dev/stage/prod)
+* ✅ Follow Terraform workspace or directory patterns to organize infra
 
 ---
 
 ## 🛠 Tools Used
 
-* Terraform CLI v1.6+ / v1.7+
-* Azure DevOps Pipelines
-* Python 3.x
-* Bash scripting (optional)
+* [Terraform CLI](https://developer.hashicorp.com/terraform/downloads) v1.6+ / v1.7+
+* [Azure DevOps Pipelines](https://learn.microsoft.com/en-us/azure/devops/pipelines/)
+* Python 3.x for drift reporting
+* Bash (optional scripts)
 
 ---
 
 ## 📄 License
 
-MIT License – free to use, modify, and extend.
+This project is licensed under the **MIT License** — free to use, modify, and distribute.
 
 ---
 
 ## 🙋 Maintainers
 
-Maintained by the Tushar
-📧 Contact: `tusharupase786@gmail.com` or open an issue in the repo
+Maintained by **Tushar Upase**
+📧 Email: [tusharupase786@gmail.com](mailto:tusharupase786@gmail.com)
 
+Let me know if you’d like a version with **badges**, like `Terraform`, `Azure DevOps`, or `License`, or if you want to **auto-generate the Python script** (`drift_to_junit.py`).
 ```
