@@ -1,6 +1,6 @@
 Terraform_Infra_drift_detection
 
-markdown
+
 # Terraform_Infra_drift_detection
 
 This repository provides **reusable** and **extensible** configurations for detecting **Terraform infrastructure drift** using **Azure DevOps pipelines**.
