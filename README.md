@@ -156,7 +156,3 @@ This project is licensed under the **MIT License** — free to use, modify, and 
 Maintained by **Tushar Upase**
 📧 Email: [tusharupase786@gmail.com](mailto:tusharupase786@gmail.com)
 For issues, [open a GitHub Issue](https://github.com/your-repo/issues)
-
----
-
-```
