@@ -154,5 +154,12 @@ This project is licensed under the **MIT License** — free to use, modify, and 
 Maintained by **Tushar Upase**
 📧 Email: [tusharupase786@gmail.com](mailto:tusharupase786@gmail.com)
 
+
+---
+
+```
+
+---
+
 Let me know if you’d like a version with **badges**, like `Terraform`, `Azure DevOps`, or `License`, or if you want to **auto-generate the Python script** (`drift_to_junit.py`).
 ```
