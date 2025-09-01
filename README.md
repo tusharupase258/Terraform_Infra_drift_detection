@@ -1,186 +1,152 @@
+````markdown
 # Terraform_Infra_drift_detection
-Guide and configuration for setting up Terraform Infrastructure Drift Detection. Includes automation steps, scripts, and best practices to monitor and alert on drift in Terraform-managed infrastructure.
 
+This repository provides reusable and extensible configurations for detecting **Terraform infrastructure drift** via **Azure DevOps pipelines**.
 
-### ✅ Terraform Infra Drift Detection v
-
-```markdown
-# Terraform Infra Drift Detection.
-
-This repository contains the configuration and pipeline setup to perform **Terraform infrastructure drift detection** using **Azure DevOps**.
-
-Infrastructure drift occurs when the actual deployed infrastructure diverges from the code defined in Terraform configuration. This setup allows you to **automatically detect drift** and take necessary actions.
+Infrastructure drift occurs when the actual deployed infrastructure differs from what's defined in Terraform code. This repo automates drift detection and provides optional steps to manually review and apply changes.
 
 ---
 
-## 📌 Features
+## 📌 Repository Goals
 
-- ✅ Azure DevOps YAML pipeline for scheduled drift detection
-- 🔁 Works with Terraform remote backends (Azure, AWS, etc.)
-- 📤 Sends drift reports to logs or optional alerting systems (e.g., email, Teams)
-- 🔒 Safe – read-only Terraform plan (no changes applied)
-- 🧪 Supports multi-environment and workspaces
-
----
-
-## 🚀 Getting Started
-
-### Step 1: Prerequisites
-
-- Terraform CLI installed (v1.0+ recommended)
-- Azure DevOps project & repo setup
-- Azure service connection with access to your backend (e.g., Azure RM, AWS, etc.)
-- Remote backend configured (e.g., Azure Storage Account for state)
+- Provide **multiple pipeline templates** for drift detection
+- Support flows from **plan-only** to **approval and apply**
+- Enable usage across **multiple environments** (e.g., dev, stage, prod)
+- Include helper scripts (e.g., for reporting, conversion)
+- Standardize Terraform drift detection in CI/CD
 
 ---
 
-### Step 2: Repo Structure
+## 📁 Repository Structure
 
-```
-
+```bash
 .
-├── azure-pipelines.yml          # Azure DevOps YAML pipeline for drift detection
-├── terraform/                   # Terraform configuration directory
+├── pipelines/
+│   ├── drift-plan-only.yml              # Detect drift only (no apply)
+│   ├── drift-plan-approve-apply.yml     # Drift detection with approval & apply
+│   ├── drift-plan-auto-apply.yml        # (Future) Drift detection with auto-apply
+│
+├── terraform/                           # Terraform configs (optional or examples)
 │   ├── main.tf
 │   ├── backend.tf
 │   └── variables.tf
-└── scripts/
-└── check\_drift.sh           # Optional helper script
-
+│
+├── scripts/
+│   ├── drift_to_junit.py                # Converts Terraform JSON plan to JUnit XML
+│   └── check_drift.sh                   # (Optional) Shell script helper
+│
+└── README.md
 ````
 
 ---
 
-### Step 3: Configure Terraform Backend
+## ✅ Available Pipelines
 
-In `terraform/backend.tf`, configure your remote state:
+### 1. `drift-plan-only.yml`
 
-```hcl
-terraform {
-  backend "azurerm" {
-    resource_group_name  = "tfstate-rg"
-    storage_account_name = "tfstateaccount"
-    container_name       = "tfstate"
-    key                  = "prod.terraform.tfstate"
-  }
-}
-````
-
-Make sure the service principal in Azure DevOps has **Storage Blob Data Reader** access.
+* Runs `terraform plan -detailed-exitcode`
+* Publishes the raw plan output (`drift.json`) as artifact
+* Converts `drift.json` → `drift-results.xml` (JUnit format)
+* Shows results in Azure DevOps test dashboard
 
 ---
 
-### Step 4: Create Azure DevOps Pipeline
+### 2. `drift-plan-approve-apply.yml`
 
-#### a. Go to Azure DevOps > Pipelines > Create Pipeline
-
-#### b. Select your repository
-
-#### c. Use existing YAML file and point to `azure-pipelines.yml`
+* All features of plan-only pipeline
+* Adds **manual approval stage**
+* Runs `terraform apply` using saved plan file (`tfplan.binary`) **after approval**
 
 ---
 
-### Step 5: azure-pipelines.yml
+### 3. `drift-plan-auto-apply.yml` *(Coming Soon)*
+
+* Automatically applies changes without manual review
+* Intended for **non-production** environments
+
+---
+
+## 🐍 Python Script for Drift Report Conversion
+
+This repo includes a Python script to convert `terraform plan` JSON output to JUnit format for visualization in Azure DevOps test results.
+
+### Script: `scripts/drift_to_junit.py`
+
+#### 📦 Requirements
+
+* Python 3.x
+* [`junit-xml`](https://pypi.org/project/junit-xml/)
+
+Install it via pip:
+
+```bash
+pip install junit-xml
+```
+
+#### 🧪 Usage
+
+```bash
+python scripts/drift_to_junit.py drift.json drift-results.xml
+```
+
+* Input: `drift.json` generated from `terraform plan -json`
+* Output: `drift-results.xml` used in `PublishTestResults@2` task
+
+---
+
+## 🔁 How to Use in Azure DevOps
+
+1. Go to Azure DevOps → Pipelines → New Pipeline
+2. Choose your repository
+3. Select "Existing YAML file"
+4. Choose a pipeline from `/pipelines/`
 
 ```yaml
-trigger: none  # No trigger on push
-
-schedules:
-  - cron: "0 3 * * *"     # Every day at 3 AM UTC
-    displayName: Daily Drift Check
-    branches:
-      include:
-        - main
-    always: true
-
-pool:
-  vmImage: 'ubuntu-latest'
-
-variables:
-  TF_VERSION: '1.6.0'
-  ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-  ARM_CLIENT_SECRET: $(ARM_CLIENT_SECRET)
-  ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
-  ARM_TENANT_ID: $(ARM_TENANT_ID)
-
-steps:
-- task: UseTerraform@0
-  inputs:
-    terraformVersion: '$(TF_VERSION)'
-
-- script: |
-    terraform --version
-    cd terraform
-    terraform init -input=false
-    terraform plan -detailed-exitcode -input=false
-  displayName: 'Terraform Drift Detection'
-
-- task: Bash@3
-  displayName: 'Handle Drift Result'
-  inputs:
-    targetType: 'inline'
-    script: |
-      if [ $$? -eq 2 ]; then
-        echo "##vso[task.logissue type=error]Drift detected in infrastructure!"
-        exit 1
-      elif [ $$? -eq 0 ]; then
-        echo "No drift detected."
-      else
-        echo "Terraform plan failed!"
-        exit 1
-      fi
+/pipelines/drift-plan-approve-apply.yml
 ```
 
 ---
 
-### Step 6: Set Pipeline Secrets
+## 🔐 Authentication Setup
 
-Go to **Pipeline > Edit > Variables > Add**:
+Set the following as **pipeline variables** or in a secure Azure DevOps Library:
 
 * `ARM_CLIENT_ID`
 * `ARM_CLIENT_SECRET`
 * `ARM_SUBSCRIPTION_ID`
 * `ARM_TENANT_ID`
 
-Mark all as **"Keep this value secret"**.
+Also, create a service connection in Azure DevOps named `tushar_SP` or update pipeline YAML accordingly.
 
 ---
 
-## ✅ Output
+## 📌 Best Practices
 
-* If no drift: ✅ Pipeline passes
-* If drift detected: ❌ Pipeline fails with message
-* You can set alerts, email notifications, or integrate with Teams
+* Don't hardcode secrets – use secure pipelines and Key Vault
+* Always review `terraform plan` before applying (especially in prod)
+* Archive `drift.json` or `tfplan.binary` as artifacts for auditing
+* Use separate pipelines for different environments if needed
 
 ---
 
-## 📌 Notes
+## 🛠 Tools Used
 
-* This pipeline **does NOT apply any changes** – it only runs `terraform plan` to detect drift
-* You can extend it to support **Slack**, **Teams**, or **email** alerts
-* Add a custom script to parse and upload the plan output if needed
+* Terraform CLI v1.6+ / v1.7+
+* Azure DevOps Pipelines
+* Python 3.x
+* Bash scripting (optional)
 
 ---
 
 ## 📄 License
 
-MIT License. Use and modify as needed.
+MIT License – free to use, modify, and extend.
 
 ---
 
-## 🙋‍♂️ Maintainers
+## 🙋 Maintainers
 
-This setup is maintained by the DevOps/Cloud Team. For queries, open an issue or contact \[[you@example.com](mailto:you@example.com)].
+Maintained by the Tushar
+📧 Contact: `tusharupase786@gmail.com` or open an issue in the repo
 
-```
-
----
-
-### Chaho to:
-
-- **Teams/Slack alerts add** karwa deta hoon
-- AWS or GCP backend ke liye customize kar deta hoon
-- Multi-env support (e.g., dev/stage/prod folders) setup kar deta hoon
-
-Batao bhai, aur kya chahiye?
 ```
