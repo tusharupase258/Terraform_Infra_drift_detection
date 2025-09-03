@@ -7,7 +7,7 @@ This repo automates drift detection, generates reports, and provides manual appr
 
 ---
 
-[View Sample Drift Dashboard](./reports/sample-drift-dashboard.html)
+[View Sample Drift Dashboard](./sample-drift-dashboard.html)
 
 ## 📌 Repository Goals
 
