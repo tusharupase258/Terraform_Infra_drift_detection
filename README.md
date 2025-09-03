@@ -157,5 +157,3 @@ Maintained by **Tushar Upase**
 📧 Email: [tusharupase786@gmail.com](mailto:tusharupase786@gmail.com)  
 
 For issues, open a **GitHub Issue** in this repository.  
-
-Do you want me to also give you a **ready-to-paste folder structure** including `/images` and this `README.md` so it’s fully organized for GitHub?
