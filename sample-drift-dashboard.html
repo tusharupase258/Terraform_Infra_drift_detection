@@ -1,0 +1,29 @@
+
+<html>
+<head>
+  <title>Terraform Drift Summary</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h2 { color: #333; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid black; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+    .add { background-color: #d4edda; }
+    .change { background-color: #fff3cd; }
+    .destroy { background-color: #f8d7da; }
+  </style>
+</head>
+<body>
+<h2>Terraform Drift Summary</h2>
+<p><strong>Summary:</strong> Added: 2 | Changed: 1 | Destroyed: 1</p>
+
+<table>
+  <tr><th>Resource</th><th>Type</th><th>Action</th></tr>
+  <tr class='add'><td>azurerm_storage_account.example1</td><td>azurerm_storage_account</td><td>create</td></tr>
+  <tr class='add'><td>azurerm_network_interface.nic1</td><td>azurerm_network_interface</td><td>create</td></tr>
+  <tr class='change'><td>azurerm_virtual_machine.vm1</td><td>azurerm_virtual_machine</td><td>update</td></tr>
+  <tr class='destroy'><td>azurerm_public_ip.old_ip</td><td>azurerm_public_ip</td><td>delete</td></tr>
+</table>
+
+</body>
+</html>
