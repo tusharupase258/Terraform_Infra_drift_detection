@@ -1,156 +1,161 @@
-Terraform_Infra_drift_detection
-
-
 # Terraform_Infra_drift_detection
 
-This repository provides **reusable** and **extensible** configurations for detecting **Terraform infrastructure drift** using **Azure DevOps pipelines**.
+This repository provides reusable and extensible configurations for detecting **Terraform Infrastructure Drift** using **Azure DevOps pipelines**.
 
-Infrastructure drift occurs when the actual deployed infrastructure differs from what's defined in Terraform code. This repo automates drift detection and provides optional steps to manually review and apply changes safely.
+Infrastructure drift occurs when the actual deployed infrastructure differs from what’s defined in Terraform code.  
+This repo automates drift detection, generates reports, and provides manual approval workflows before applying changes safely.
 
 ---
 
 ## 📌 Repository Goals
 
-- ✅ Provide **multiple pipeline templates** for drift detection
-- 🔁 Support flows from **plan-only** to **approval and apply**
-- 🌐 Enable usage across **multiple environments** (e.g., dev, stage, prod)
-- 🛠️ Include **helper scripts** (e.g., reporting, conversion to test results)
-- 📦 Standardize Terraform drift detection in CI/CD workflows
+* ✅ Provide multiple pipeline templates for drift detection  
+* 🔁 Support flows from **plan-only** to **approval and apply**  
+* 🌐 Enable usage across **multiple environments** (e.g., dev, pre-prod, prod)  
+* 🛠️ Include helper scripts for drift reporting and dashboards  
+* 📦 Standardize **Terraform drift detection** in CI/CD workflows  
 
 ---
 
 ## 📁 Repository Structure
 
-```bash
+```
+
 .
-├── pipelines/
-│   ├── drift-plan-only.yml              # Detect drift only (no apply)
-│   ├── drift-plan-approve-apply.yml     # Drift detection with manual approval & apply
-│   ├── drift-plan-auto-apply.yml        # (Coming Soon) Auto apply after drift
-│
-├── terraform/                           # Example Terraform configuration
+├── main\_drift\_detection.yaml       # Azure DevOps pipeline for drift detection
+├── CheckDrift.ps1                  # PowerShell script to check drift & generate HTML dashboard
+├── terraform/                      # Example Terraform configuration
 │   ├── main.tf
 │   ├── backend.tf
 │   └── variables.tf
-│
-├── scripts/
-│   ├── drift_to_junit.py                # Converts Terraform plan JSON to JUnit XML
-│   └── check_drift.sh                   # (Optional) Shell helper script
-│
-└── README.md                            # This documentation
-````
+├── scripts/                        # Helper scripts (extendable)
+├── .gitignore
+└── README.md
+
+```
 
 ---
 
 ## ✅ Available Pipelines
 
-### 1. `drift-plan-only.yml`
+### 1. Drift Detection (`main_drift_detection.yaml`)
 
-* Runs `terraform plan -detailed-exitcode`
-* Publishes the raw plan output (`drift.json`) as an artifact
-* Converts `drift.json` → `drift-results.xml` (JUnit format)
-* Shows drift results in Azure DevOps Test tab
+* Runs `terraform plan -detailed-exitcode`  
+* Detects drift and sets pipeline variable `DriftDetected`  
+* Generates:  
+  * `drift.txt` → plain-text summary  
+  * `drift-summary.html` → dashboard report  
+  * `tfplan.json` → JSON plan output for analysis  
+* Publishes reports as artifacts in Azure DevOps  
 
-### 2. `drift-plan-approve-apply.yml`
+### 2. Manual Approval
 
-* Includes all steps from the **plan-only pipeline**
-* Adds a **manual approval stage** before apply
-* Applies changes using `tfplan.binary` only after approval
+* If drift is detected, requires **manual approval** before applying changes  
+* Sends approval request with drift report attached  
 
-### 3. `drift-plan-auto-apply.yml` *(Coming Soon)*
+### 3. Apply Changes
 
-* Automatically applies changes **without human approval**
-* Best suited for **non-production** environments
+* Re-initializes Terraform backend  
+* Applies drift changes only after approval  
 
 ---
 
-## 🐍 Python Script for Drift Report Conversion
+## 🐍 & 💻 Drift Reporting Scripts
 
-The repo includes a Python script to convert `terraform plan -json` output into **JUnit XML**, so it can be viewed as test results in Azure DevOps.
+### PowerShell Script: `CheckDrift.ps1`
 
-### 📄 Script: `scripts/drift_to_junit.py`
+* Parses Terraform plan file  
+* Detects drift and sets Azure DevOps output variable  
+* Generates both **JSON** and **HTML summary dashboards**  
+* Categorizes resources into:  
+  * ➕ Added  
+  * 🔄 Changed  
+  * ❌ Destroyed  
 
-#### 📦 Requirements
+---
 
-* Python 3.x
-* [`junit-xml`](https://pypi.org/project/junit-xml/)
+## 📊 Unified Drift Report
 
-Install via pip:
+The pipeline produces:  
 
-```bash
-pip install junit-xml
-```
+- **Drift Dashboard** → Added / Changed / Destroyed resources  
+- **Pipeline Artifacts** → `drift.txt`, `drift-summary.html`, `tfplan.json`  
+- **Azure DevOps Test Results** → Drift shown as test cases  
 
-#### 🧪 Usage
+![Drift Detection Overview](./drift-detection-overview.png)  
 
-```bash
-python scripts/drift_to_junit.py drift.json drift-results.xml
-```
-
-* `drift.json`: Output from `terraform plan -json`
-* `drift-results.xml`: Used by `PublishTestResults@2` in the pipeline
+💡 With this setup, teams can **catch drift early** and keep infrastructure always in sync with Terraform.  
 
 ---
 
 ## 🔁 How to Use in Azure DevOps
 
-1. Go to **Azure DevOps** → **Pipelines** → **New Pipeline**
-2. Select your repository
-3. Choose "**Existing YAML file**"
-4. Pick the pipeline file you need, e.g.:
+1. Go to **Azure DevOps → Pipelines → New Pipeline**  
+2. Select your repository  
+3. Choose **Existing YAML file**  
+4. Pick:  
 
-```yaml
-/pipelines/drift-plan-approve-apply.yml
 ```
+
+/main\_drift\_detection.yaml
+
+```
+5. Run pipeline manually (trigger is set to `none`)  
 
 ---
 
 ## 🔐 Authentication Setup
 
-Set the following as **secure pipeline variables** or in a **DevOps Variable Group**:
+Configure the following **secure variables** or use an **Azure DevOps Variable Group**:
 
-* `ARM_CLIENT_ID`
-* `ARM_CLIENT_SECRET`
-* `ARM_SUBSCRIPTION_ID`
-* `ARM_TENANT_ID`
+* `ARM_CLIENT_ID`  
+* `ARM_CLIENT_SECRET`  
+* `ARM_SUBSCRIPTION_ID`  
+* `ARM_TENANT_ID`  
 
-Also, create a **service connection** in Azure DevOps named:
+Also, create a service connection in Azure DevOps named:
 
-```text
-tushar_SP
 ```
 
-Or update the pipeline YAML to match your actual service connection name.
+tushar\_sc\_new1
+
+```
+
+(or update YAML to match your actual service connection name).  
 
 ---
 
 ## 📌 Best Practices
 
-* ❌ **Never hardcode secrets** – use secure variables or Key Vault
-* 🔍 Always **review the plan** before applying (especially in production)
-* 🗃️ Archive `drift.json` and `tfplan.binary` as artifacts for audit trail
-* 🔀 Use **separate pipelines** per environment (dev/stage/prod)
-* ✅ Follow Terraform workspace or directory patterns to organize infra
+* ❌ **Never hardcode secrets** – use secure variables or Azure Key Vault  
+* 🔍 Always review the **plan & HTML report** before applying (esp. in production)  
+* 🗃️ Archive `drift.json`, `drift.txt`, `drift-summary.html`, and `tfplan.binary` as artifacts  
+* 🔀 Use **separate pipelines per environment** (dev / pre-prod / prod)  
+* ✅ Follow Terraform workspace/directory patterns for infra organization  
 
 ---
 
 ## 🛠 Tools Used
 
-* [Terraform CLI](https://developer.hashicorp.com/terraform/downloads) v1.6+ / v1.7+
-* [Azure DevOps Pipelines](https://learn.microsoft.com/en-us/azure/devops/pipelines/)
-* Python 3.x for drift reporting
-* Bash (optional scripts)
+* Terraform CLI v1.6+ / v1.7+  
+* Azure DevOps Pipelines  
+* PowerShell (drift dashboard)  
+* Python 3.x *(optional – for JUnit conversion)*  
+* Bash *(optional – helper scripts)*  
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — free to use, modify, and distribute.
+This project is licensed under the **MIT License** — free to use, modify, and distribute.  
 
 ---
 
 ## 🙋 Maintainers
 
-Maintained by **Tushar Upase**
-📧 Email: [tusharupase786@gmail.com](mailto:tusharupase786@gmail.com)
-For issues, [open a GitHub Issue](https://github.com/your-repo/issues)
+Maintained by **Tushar Upase**  
+📧 Email: [tusharupase786@gmail.com](mailto:tusharupase786@gmail.com)  
+
+For issues, open a **GitHub Issue** in this repository.  
+
+Do you want me to also give you a **ready-to-paste folder structure** including `/images` and this `README.md` so it’s fully organized for GitHub?
